@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnizzerLeaks - Watch Videos</title>
+    <style>
+        :root {
+            --primary-dark: #121212;
+            --secondary-dark: #1e1e1e;
+            --accent-color: #8c52ff;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--primary-dark);
+            color: var(--text-primary);
+        }
+
+        .navbar {
+            background-color: var(--secondary-dark);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .search-bar {
+            flex: 0 1 40%;
+            position: relative;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: none;
+            background-color: var(--primary-dark);
+            color: var(--text-primary);
+        }
+
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .video-card {
+            background-color: var(--secondary-dark);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background-color: #000;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .video-info {
+            padding: 1rem;
+        }
+
+        .video-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .video-meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .category-tab {
+            background-color: var(--secondary-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .category-tab.active {
+            background-color: var(--accent-color);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">SnizzerLeaks</a>
+        <div class="search-bar">
+            <input type="text" placeholder="Search videos..." id="searchInput">
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="category-tabs" id="categoryTabs">
+        </div>
+
+        <div class="video-grid" id="videoGrid">
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = { 
+            apiKey: "AIzaSyDArLK_DvLfGk7cZ4gCjPZg1UgW-ClIu9M", 
+            authDomain: "snizzerleaks.firebaseapp.com", 
+            projectId: "snizzerleaks", 
+            storageBucket: "snizzerleaks.firebasestorage.app", 
+            messagingSenderId: "392238282125", 
+            appId: "1:392238282125:web:d216f6aa64e6ffb946f9c4", 
+            measurementId: "G-VR1FCDNRQF" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        let videos = [];
+        let categories = new Set();
+
+        async function fetchVideos() {
+            try {
+                const snapshot = await database.ref('videos').once('value');
+                const videosData = snapshot.val() || {};
+                // Transform the data and add the ID to each video
+                videos = Object.entries(videosData).map(([id, video]) => ({
+                    id,
+                    ...video,
+                    // Get category name instead of ID
+                    category: video.category
+                }));
+                
+                // Get unique categories
+                const categorySnapshot = await database.ref('categories').once('value');
+                const categoriesData = categorySnapshot.val() || {};
+                const categoryMap = Object.entries(categoriesData).reduce((acc, [id, name]) => {
+                    acc[id] = name;
+                    return acc;
+                }, {});
+                
+                // Map category IDs to names in videos
+                videos = videos.map(video => ({
+                    ...video,
+                    category: categoryMap[video.category] || 'Uncategorized'
+                }));
+                
+                categories = new Set(videos.map(video => video.category));
+                renderCategories();
+                renderVideos(videos);
+            } catch (error) {
+                console.error('Error fetching videos:', error);
+            }
+        }
+
+        function renderCategories() {
+            const tabsContainer = document.getElementById('categoryTabs');
+            tabsContainer.innerHTML = `
+                <div class="category-tab active" data-category="all">All</div>
+                ${Array.from(categories).map(category => 
+                    `<div class="category-tab" data-category="${category}">${category}</div>`
+                ).join('')}
+            `;
+
+            tabsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('category-tab')) {
+                    document.querySelectorAll('.category-tab').forEach(tab => 
+                        tab.classList.remove('active'));
+                    e.target.classList.add('active');
+                    const category = e.target.dataset.category;
+                    filterVideos(category);
+                }
+            });
+        }
+
+        function filterVideos(category) {
+            const filteredVideos = category === 'all' 
+                ? videos 
+                : videos.filter(video => video.category === category);
+            renderVideos(filteredVideos);
+        }
+
+        async function generateThumbnail(videoUrl) {
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.crossOrigin = 'anonymous';
+                video.src = videoUrl;
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                
+                video.addEventListener('loadedmetadata', () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                });
+                
+                video.addEventListener('loadeddata', () => {
+                    // Seek to 1 second or video duration if shorter
+                    video.currentTime = Math.min(1, video.duration);
+                });
+                
+                video.addEventListener('seeked', () => {
+                    // Draw the frame
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    // Convert to data URL
+                    const thumbnailUrl = canvas.toDataURL('image/jpeg');
+                    resolve(thumbnailUrl);
+                });
+                
+                video.addEventListener('error', () => {
+                    console.error('Error loading video for thumbnail:', video.error);
+                    resolve('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWUxZTFlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udQtzaXplPSIyNCIgZmlsbD0iIzhjNTJmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9XCIuM2VtXCI+Tm8gVGh1bWJuYWlsPC90ZXh0Pjwvc3ZnPg==');
+                });
+                
+                // Start loading the video
+                video.load();
+            });
+        }
+
+        async function renderVideos(videosToRender) {
+            const grid = document.getElementById('videoGrid');
+            const videoElements = await Promise.all(videosToRender.map(async video => {
+                const thumbnail = await generateThumbnail(video.url);
+                return `
+                    <a href="/view?id=${video.id}" class="video-card">
+                        <div class="video-thumbnail" style="background-image: url('${thumbnail}')"></div>
+                        <div class="video-info">
+                            <h3 class="video-title">${video.title}</h3>
+                            <div class="video-meta">${video.category}</div>
+                        </div>
+                    </a>
+                `;
+            }));
+            grid.innerHTML = videoElements.join('');
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredVideos = videos.filter(video => 
+                video.title.toLowerCase().includes(searchTerm) || 
+                video.category.toLowerCase().includes(searchTerm)
+            );
+            renderVideos(filteredVideos);
+        });
+
+        fetchVideos();
+    </script>
+</body>
+</html>

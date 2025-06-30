@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Video - SnizzerLeaks</title>
+    <style>
+        :root {
+            --primary-dark: #121212;
+            --secondary-dark: #1e1e1e;
+            --accent-color: #8c52ff;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--primary-dark);
+            color: var(--text-primary);
+        }
+
+        .navbar {
+            background-color: var(--secondary-dark);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .video-container {
+            width: 100%;
+            background: var(--secondary-dark);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .video-player {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+        }
+
+        .video-info {
+            padding: 1.5rem;
+        }
+
+        .video-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .video-meta {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .video-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        video::-webkit-media-controls {
+            background-color: var(--secondary-dark);
+        }
+
+        .error-message {
+            color: #ff4444;
+            text-align: center;
+            padding: 2rem;
+            background: var(--secondary-dark);
+            border-radius: 10px;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">SnizzerLeaks</a>
+    </nav>
+
+    <main class="main-content">
+        <div id="videoContent"></div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = { 
+            apiKey: "AIzaSyDArLK_DvLfGk7cZ4gCjPZg1UgW-ClIu9M", 
+            authDomain: "snizzerleaks.firebaseapp.com", 
+            projectId: "snizzerleaks", 
+            storageBucket: "snizzerleaks.firebasestorage.app", 
+            messagingSenderId: "392238282125", 
+            appId: "1:392238282125:web:d216f6aa64e6ffb946f9c4", 
+            measurementId: "G-VR1FCDNRQF" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        async function fetchVideo() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = urlParams.get('id');
+
+            if (!videoId) {
+                showError('Video ID not provided');
+                return;
+            }
+
+            try {
+                const videoSnapshot = await database.ref(`videos/${videoId}`).once('value');
+                const videoData = videoSnapshot.val();
+                if (!videoData) {
+                    throw new Error('Video not found');
+                }
+
+                // Get category name
+                const categorySnapshot = await database.ref(`categories/${videoData.category}`).once('value');
+                const categoryName = categorySnapshot.val() || 'Uncategorized';
+
+                const video = {
+                    id: videoId,
+                    ...videoData,
+                    category: categoryName
+                };
+
+                renderVideo(video);
+            } catch (error) {
+                console.error('Error fetching video:', error);
+                showError('Failed to load video');
+            }
+        }
+
+        function renderVideo(video) {
+            const container = document.getElementById('videoContent');
+            container.innerHTML = `
+                <div class="video-container">
+                    <video class="video-player" controls autoplay>
+                        <source src="${video.url}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-info">
+                        <h1 class="video-title">${video.title}</h1>
+                        <div class="video-meta">${video.category}</div>
+                        <p class="video-description">${video.description || ''}</p>
+                    </div>
+                </div>
+            `;
+
+            // Update page title
+            document.title = `${video.title} - SnizzerLeaks`;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('videoContent');
+            container.innerHTML = `
+                <div class="error-message">
+                    <h2>${message}</h2>
+                    <p>Return to <a href="/" style="color: var(--accent-color)">home page</a></p>
+                </div>
+            `;
+        }
+
+        fetchVideo();
+    </script>
+</body>
+</html>
