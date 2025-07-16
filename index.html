@@ -3,294 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnizzerLeaks - Watch Videos</title>
-    <style>
-        :root {
-            --primary-dark: #121212;
-            --secondary-dark: #1e1e1e;
-            --accent-color: #8c52ff;
-            --text-primary: #ffffff;
-            --text-secondary: #b3b3b3;
+    <title>Snizzer Leaks</title>
+    <!-- Preload TailwindCSS for faster loading -->
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter font for premium feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome (optimized) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: '#000000',
+                        'dark-card': '#121212',
+                        'dark-hover': '#1a1a1a',
+                        accent: '#ff3366'
+                    },
+                }
+            }
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: var(--primary-dark);
-            color: var(--text-primary);
-        }
-
-        .navbar {
-            background-color: var(--secondary-dark);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--accent-color);
-            text-decoration: none;
-        }
-
-        .search-bar {
-            flex: 0 1 40%;
-            position: relative;
-        }
-
-        .search-bar input {
-            width: 100%;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            border: none;
-            background-color: var(--primary-dark);
-            color: var(--text-primary);
-        }
-
-        .main-content {
-            margin-top: 80px;
-            padding: 2rem;
-        }
-
-        .video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .video-card {
-            background-color: var(--secondary-dark);
-            border-radius: 10px;
-            overflow: hidden;
-            transition: transform 0.2s;
-            cursor: pointer;
-            text-decoration: none;
-            color: var(--text-primary);
-        }
-
-        .video-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .video-thumbnail {
-            width: 100%;
-            aspect-ratio: 16/9;
-            background-color: #000;
-            position: relative;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .video-info {
-            padding: 1rem;
-        }
-
-        .video-title {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .video-meta {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .category-tabs {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
-        }
-
-        .category-tab {
-            background-color: var(--secondary-dark);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .category-tab.active {
-            background-color: var(--accent-color);
-            color: var(--text-primary);
+    </script>
+    <style type="text/tailwindcss">
+        @layer components {
+            .video-card {
+                @apply bg-dark-card rounded-xl overflow-hidden transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-xl hover:shadow-black/30 hover:bg-dark-hover;
+            }
+            .video-thumbnail {
+                @apply w-full aspect-video object-cover transition-all duration-200;
+            }
+            .video-card:hover .video-thumbnail {
+                @apply brightness-110;
+            }
+            .video-title {
+                @apply text-gray-100 font-medium text-sm lg:text-base truncate p-4;
+            }
+            .search-input {
+                @apply w-full bg-dark-card text-gray-100 px-6 py-4 rounded-full border border-gray-800 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-transparent transition-all placeholder:text-gray-500;
+            }
         }
     </style>
 </head>
-<body>
-    <nav class="navbar">
-        <a href="./index.html" class="logo">SnizzerLeaks</a>
-        <div class="search-bar">
-            <input type="text" placeholder="Search videos..." id="searchInput">
+<body class="bg-dark min-h-screen font-sans text-gray-100 antialiased">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Title Section -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Snizzer Leaks</h1>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="max-w-xl mx-auto mb-16">
+            <div class="relative">
+                <input type="text" placeholder="Search videos..." class="search-input">
+                <button class="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 hover:text-accent transition-colors">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
         </div>
-    </nav>
 
-    <main class="main-content">
-        <div class="category-tabs" id="categoryTabs">
+        <!-- Video Grid -->
+        <div id="videoGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+            <!-- Videos will be dynamically loaded here -->
         </div>
 
-        <div class="video-grid" id="videoGrid">
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12 hidden">
+            <i class="fas fa-spinner fa-spin text-4xl text-accent"></i>
+            <p class="mt-4 text-gray-400">Loading videos...</p>
         </div>
-    </main>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+        <!-- No Results State -->
+        <div id="noResults" class="text-center py-12 hidden">
+            <i class="fas fa-search text-4xl text-gray-600"></i>
+            <p class="mt-4 text-gray-400">No videos found</p>
+        </div>
+    </div>
 
-    <script>
-        // Initialize Firebase
-        const firebaseConfig = { 
-            apiKey: "AIzaSyDArLK_DvLfGk7cZ4gCjPZg1UgW-ClIu9M", 
-            authDomain: "snizzerleaks.firebaseapp.com", 
-            projectId: "snizzerleaks", 
-            storageBucket: "snizzerleaks.firebasestorage.app", 
-            messagingSenderId: "392238282125", 
-            appId: "1:392238282125:web:d216f6aa64e6ffb946f9c4", 
-            measurementId: "G-VR1FCDNRQF" 
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        
-        let videos = [];
-        let categories = new Set();
-
-        async function fetchVideos() {
-            try {
-                const snapshot = await database.ref('videos').once('value');
-                const videosData = snapshot.val() || {};
-                // Transform the data and add the ID to each video
-                videos = Object.entries(videosData).map(([id, video]) => ({
-                    id,
-                    ...video,
-                    // Get category name instead of ID
-                    category: video.category
-                }));
-                
-                // Get unique categories
-                const categorySnapshot = await database.ref('categories').once('value');
-                const categoriesData = categorySnapshot.val() || {};
-                const categoryMap = Object.entries(categoriesData).reduce((acc, [id, name]) => {
-                    acc[id] = name;
-                    return acc;
-                }, {});
-                
-                // Map category IDs to names in videos
-                videos = videos.map(video => ({
-                    ...video,
-                    category: categoryMap[video.category] || 'Uncategorized'
-                }));
-                
-                categories = new Set(videos.map(video => video.category));
-                renderCategories();
-                renderVideos(videos);
-            } catch (error) {
-                console.error('Error fetching videos:', error);
-            }
-        }
-
-        function renderCategories() {
-            const tabsContainer = document.getElementById('categoryTabs');
-            tabsContainer.innerHTML = `
-                <div class="category-tab active" data-category="all">All</div>
-                ${Array.from(categories).map(category => 
-                    `<div class="category-tab" data-category="${category}">${category}</div>`
-                ).join('')}
-            `;
-
-            tabsContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('category-tab')) {
-                    document.querySelectorAll('.category-tab').forEach(tab => 
-                        tab.classList.remove('active'));
-                    e.target.classList.add('active');
-                    const category = e.target.dataset.category;
-                    filterVideos(category);
-                }
-            });
-        }
-
-        function filterVideos(category) {
-            const filteredVideos = category === 'all' 
-                ? videos 
-                : videos.filter(video => video.category === category);
-            renderVideos(filteredVideos);
-        }
-
-        async function generateThumbnail(videoUrl) {
-            return new Promise((resolve) => {
-                const video = document.createElement('video');
-                video.crossOrigin = 'anonymous';
-                video.src = videoUrl;
-                
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                
-                video.addEventListener('loadedmetadata', () => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                });
-                
-                video.addEventListener('loadeddata', () => {
-                    // Seek to 1 second or video duration if shorter
-                    video.currentTime = Math.min(1, video.duration);
-                });
-                
-                video.addEventListener('seeked', () => {
-                    // Draw the frame
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    // Convert to data URL
-                    const thumbnailUrl = canvas.toDataURL('image/jpeg');
-                    resolve(thumbnailUrl);
-                });
-                
-                video.addEventListener('error', () => {
-                    console.error('Error loading video for thumbnail:', video.error);
-                    resolve('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWUxZTFlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udQtzaXplPSIyNCIgZmlsbD0iIzhjNTJmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9XCIuM2VtXCI+Tm8gVGh1bWJuYWlsPC90ZXh0Pjwvc3ZnPg==');
-                });
-                
-                // Start loading the video
-                video.load();
-            });
-        }
-
-        async function renderVideos(videosToRender) {
-            const grid = document.getElementById('videoGrid');
-            const videoElements = await Promise.all(videosToRender.map(async video => {
-                const thumbnail = await generateThumbnail(video.url);
-                return `
-                    <a href="./view/index.html?id=${video.id}" class="video-card">
-                        <div class="video-thumbnail" style="background-image: url('${thumbnail}')"></div>
-                        <div class="video-info">
-                            <h3 class="video-title">${video.title}</h3>
-                            <div class="video-meta">${video.category}</div>
-                        </div>
-                    </a>
-                `;
-            }));
-            grid.innerHTML = videoElements.join('');
-        }
-
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredVideos = videos.filter(video => 
-                video.title.toLowerCase().includes(searchTerm) || 
-                video.category.toLowerCase().includes(searchTerm)
-            );
-            renderVideos(filteredVideos);
-        });
-
-        fetchVideos();
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
